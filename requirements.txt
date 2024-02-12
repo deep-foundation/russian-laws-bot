@@ -1,7 +1,7 @@
-aiofiles~=23.1.0
+aiofiles~=23.2.1
 httpx~=0.25.0
 openai~=0.28.0
-aiogram~=3.1.1
+aiogram~=3.3.0
 python-dotenv~=1.0.0
 tiktoken~=0.5.2
 

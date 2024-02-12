@@ -54,7 +54,7 @@ async def get_openai_completion(prompt):
         chat_completion = await openai.ChatCompletion.acreate(
             deployment_id="gpt-4-128k",
             model="gpt-4",
-            messages=[{"role": 'user', "content": prompt}]
+            messages=[{"role": 'user', "content": prompt}] # TODO: use actuall messages instead of single message
         )
 
         return chat_completion["choices"][0]["message"]["content"]
@@ -94,28 +94,28 @@ def get_user_context(user_id):
     return users_context[user_id]
 
 
-@router.callback_query()
-async def handle_callback_query(callback_query: CallbackQuery) -> Any:
-    data = callback_query.data
-    cb1 = MyCallback.unpack(data)
-    user_context = get_user_context(cb1.id)
-    user_data = user_context.get_data()
-    if cb1.action == "Send":
-        if user_data == "":
-            await callback_query.message.answer("Context is empty")
-        else:
-            answer = await get_openai_completion(user_data)
-            user_context.update_data("\n---\n" + answer)
-            await send_or_split_message(callback_query.message, answer)
-    elif cb1.action == "Clear":
-        user_context.clear_data()
-        await callback_query.message.answer("Context cleared")
-    elif cb1.action == "See":
-        if user_data == "":
-            await callback_query.message.answer("Context is empty")
-        else:
-            await callback_query.message.answer(user_data)
-    await callback_query.answer()
+# @router.callback_query()
+# async def handle_callback_query(callback_query: CallbackQuery) -> Any:
+#     data = callback_query.data
+#     cb1 = MyCallback.unpack(data)
+#     user_context = get_user_context(cb1.id)
+#     user_data = user_context.get_data()
+#     if cb1.action == "Send":
+#         if user_data == "":
+#             await callback_query.message.answer("Context is empty")
+#         else:
+#             answer = await get_openai_completion(user_data)
+#             user_context.update_data("\n---\n" + answer)
+#             await send_or_split_message(callback_query.message, answer)
+#     elif cb1.action == "Clear":
+#         user_context.clear_data()
+#         await callback_query.message.answer("Context cleared")
+#     elif cb1.action == "See":
+#         if user_data == "":
+#             await callback_query.message.answer("Context is empty")
+#         else:
+#             await callback_query.message.answer(user_data)
+#     await callback_query.answer()
 
 
 def contains_url(string):
@@ -159,12 +159,20 @@ async def handle_text(message: Message) -> Any:
             async with aiofiles.open(temp_file.name, 'r', encoding='utf-8') as file:
                 user_context.update_data(await file.read())
         tokens_count = len(encoding.encode(user_context.get_data()))
-        builder = InlineKeyboardBuilder()
-        builder.button(text="Send request", callback_data=MyCallback(action="Send", id=user_id))
-        builder.button(text="Clear context", callback_data=MyCallback(action="Clear", id=user_id))
-        builder.button(text="See context", callback_data=MyCallback(action="See", id=user_id))
-        markup = builder.as_markup()
-        await message.answer(f"Your context: {tokens_count}/128000", reply_markup=markup)
+
+
+        user_data = user_context.get_data()
+        if not user_data == "":
+            answer = await get_openai_completion(user_data)
+            user_context.update_data("\n---\n" + answer)
+            await send_or_split_message(message, answer)
+
+        # builder = InlineKeyboardBuilder()
+        # builder.button(text="Send request", callback_data=MyCallback(action="Send", id=user_id))
+        # builder.button(text="Clear context", callback_data=MyCallback(action="Clear", id=user_id))
+        # builder.button(text="See context", callback_data=MyCallback(action="See", id=user_id))
+        # markup = builder.as_markup()
+        # await message.answer(f"Your context: {tokens_count}/128000", reply_markup=markup)
     except Exception as e:
         logger.error(e)
 
@@ -183,12 +191,24 @@ async def handle_document(message: Message) -> Any:
             async with aiofiles.open(temp_file.name, 'r', encoding='utf-8') as file:
                 user_context.update_data(await file.read())
         tokens_count = len(encoding.encode(user_context.get_data()))
-        builder = InlineKeyboardBuilder()
-        builder.button(text="Send request", callback_data=MyCallback(action="Send", id=user_id))
-        builder.button(text="Clear context", callback_data=MyCallback(action="Clear", id=user_id))
-        builder.button(text="See context", callback_data=MyCallback(action="See", id=user_id))
-        markup = builder.as_markup()
-        await message.answer(f"Your context: {tokens_count}/128000", reply_markup=markup)
+
+        user_data = user_context.get_data()
+        if not user_data == "":
+            answer = await get_openai_completion(user_data)
+            user_context.update_data("\n---\n" + answer)
+            await send_or_split_message(message, answer)
+
+        # builder = InlineKeyboardBuilder()
+        # builder.button(text="Send request", callback_data=MyCallback(action="Send", id=user_id))
+        # builder.button(text="Clear context", callback_data=MyCallback(action="Clear", id=user_id))
+        # builder.button(text="See context", callback_data=MyCallback(action="See", id=user_id))
+
+        # markup_menu = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        # markup_menu.add(KeyboardButton('Добавить заказ'), KeyboardButton('Изменить заказ'),
+        #             KeyboardButton('Информация о заказе'), KeyboardButton('Обратно к выбору должности'))
+
+        # markup = builder.as_markup()
+        # await message.answer(f"Your context: {tokens_count}/128000", reply_markup=markup)
     except UnicodeDecodeError as e:
         logger.error(e)
         await message.answer("This file is not supported.")
