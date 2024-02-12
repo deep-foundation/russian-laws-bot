@@ -7,7 +7,6 @@ WORKDIR /app
 # Копируем файлы проекта в контейнер
 COPY main.py /app
 COPY requirements.txt /app
-COPY Filters.py /app
 COPY .env /app
 # Устанавливаем зависимости
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
