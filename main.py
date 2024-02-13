@@ -38,7 +38,7 @@ openai.api_version = "2023-03-15-preview"
 encoding = tiktoken.encoding_for_model("gpt-4")
 
 
-async def send_or_split_message(message, text):
+async def send_message(message, text):
     if len(text) > 4096:
         for i in range(0, len(text), 4096):
             text_chunk = text[i:i + 4096]
@@ -54,12 +54,12 @@ async def send_or_split_message(message, text):
     # await message.answer_document(text_file)
 
 
-async def get_openai_completion(prompt):
+async def get_openai_completion(messages):
     try:
         chat_completion = await openai.ChatCompletion.acreate(
             deployment_id="gpt-4-128k",
             model="gpt-4",
-            messages=[{"role": 'user', "content": prompt}] # TODO: use actuall messages instead of single message
+            messages=messages
         )
 
         # self._messages.append({"role": "assistant", "content": self.pending_stream_reply.result()})
@@ -69,7 +69,7 @@ async def get_openai_completion(prompt):
 
         print(json.dumps(chat_completion, indent=4))
 
-        return chat_completion["choices"][0]["message"]["content"]
+        return chat_completion["choices"][0]["message"]
     except Exception as e:
         logger.error(f"OpenAI completion error: {e}")
         raise
@@ -91,8 +91,11 @@ class UserContext:
     def update_data(self, value):
         self.data += "\n" + value
 
-    def add_message(self, role, message):
+    def make_and_add_message(self, role, message):
         self.messages.append({ "role": role, "content": message })
+
+    def add_message(message):
+        self.messages.append(message)
 
     def clear_data(self):
         self.data = "" # TODO: remove
@@ -124,9 +127,9 @@ def get_user_context(user_id):
 #         if user_data == "":
 #             await callback_query.message.answer("Context is empty")
 #         else:
-#             answer = await get_openai_completion(user_data)
-#             user_context.update_data("\n---\n" + answer)
-#             await send_or_split_message(callback_query.message, answer)
+#             answer = await get_openai_completion([{"role": 'user', "content": user_data}])
+#             user_context.add_message(answer)
+#             await send_message(callback_query.message, answer['content'])
 #     elif cb1.action == "Clear":
 #         user_context.clear_data()
 #         await callback_query.message.answer("Context cleared")
@@ -183,9 +186,10 @@ async def handle_text(message: Message) -> Any:
 
         user_data = user_context.get_data()
         if not user_data == "":
-            answer = await get_openai_completion(user_data)
-            user_context.update_data("\n---\n" + answer)
-            await send_or_split_message(message, answer)
+            user_context.make_and_add_message('user', user_data)
+            answer = await get_openai_completion(user_context.get_messages())
+            user_context.add_message(answer)
+            await send_message(message, answer['content'])
 
         # builder = InlineKeyboardBuilder()
         # builder.button(text="Send request", callback_data=MyCallback(action="Send", id=user_id))
@@ -214,9 +218,10 @@ async def handle_document(message: Message) -> Any:
 
         user_data = user_context.get_data()
         if not user_data == "":
-            answer = await get_openai_completion(user_data)
-            user_context.update_data("\n---\n" + answer)
-            await send_or_split_message(message, answer)
+            user_context.make_and_add_message('user', user_data)
+            answer = await get_openai_completion(user_context.get_messages())
+            user_context.add_message(answer)
+            await send_message(message, answer['content'])
 
         # builder = InlineKeyboardBuilder()
         # builder.button(text="Send request", callback_data=MyCallback(action="Send", id=user_id))
