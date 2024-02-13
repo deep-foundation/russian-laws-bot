@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import sys
+import json
 import tiktoken
 import aiofiles
 import aiohttp
@@ -43,9 +44,11 @@ async def send_or_split_message(message, text):
             text_chunk = text[i:i + 4096]
             text_chunk = re.sub(r'[_*[\]()~>#\+\-=|{}.!]', lambda x: '\\' + x.group(), text_chunk)
             await message.answer(text_chunk)
+            logger.info(f"---------\nSent message: {text_chunk}")
     else:
         text = re.sub(r'[_*[\]()~>#\+\-=|{}.!]', lambda x: '\\' + x.group(), text)
         await message.answer(text)
+        logger.info(f"---------\nSent message: {text}")
 
     # text_file = BufferedInputFile(bytes(text, 'utf-8'), filename="file.txt")
     # await message.answer_document(text_file)
@@ -58,6 +61,13 @@ async def get_openai_completion(prompt):
             model="gpt-4",
             messages=[{"role": 'user', "content": prompt}] # TODO: use actuall messages instead of single message
         )
+
+        # self._messages.append({"role": "assistant", "content": self.pending_stream_reply.result()})
+        # self.pending_stream_reply = None
+
+        # self._messages.append({"role": "user", "content": message})
+
+        print(json.dumps(chat_completion, indent=4))
 
         return chat_completion["choices"][0]["message"]["content"]
     except Exception as e:
@@ -76,15 +86,23 @@ class MyCallback(CallbackData, prefix="my"):
 class UserContext:
     def __init__(self):
         self.data = ""
+        self.messages = []
 
     def update_data(self, value):
         self.data += "\n" + value
 
+    def add_message(self, role, message):
+        self.messages.append({ "role": role, "content": message })
+
     def clear_data(self):
-        self.data = ""
+        self.data = "" # TODO: remove
+        self.messages = []
 
     def get_data(self):
         return self.data
+    
+    def get_messages(self):
+        return self.messages
 
 
 users_context = {}
