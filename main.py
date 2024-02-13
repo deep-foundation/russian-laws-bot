@@ -56,6 +56,8 @@ async def send_message(message, text):
 
 async def get_openai_completion(messages):
     try:
+        logger.info(f"---------\nCompletion request messages:\n{json.dumps(messages, indent=4)}")
+
         chat_completion = await openai.ChatCompletion.acreate(
             deployment_id="gpt-4-128k",
             model="gpt-4",
@@ -67,7 +69,7 @@ async def get_openai_completion(messages):
 
         # self._messages.append({"role": "user", "content": message})
 
-        print(json.dumps(chat_completion, indent=4))
+        logger.info(f"---------\nCompletion responce:\n{json.dumps(chat_completion, indent=4)}")
 
         return chat_completion["choices"][0]["message"]
     except Exception as e:
@@ -94,7 +96,7 @@ class UserContext:
     def make_and_add_message(self, role, message):
         self.messages.append({ "role": role, "content": message })
 
-    def add_message(message):
+    def add_message(self, message):
         self.messages.append(message)
 
     def clear_data(self):
