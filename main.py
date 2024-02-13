@@ -41,17 +41,11 @@ async def send_or_split_message(message, text):
     if len(text) > 4096:
         for i in range(0, len(text), 4096):
             text_chunk = text[i:i + 4096]
-            # await message.answer(text_chunk)
             text_chunk = re.sub(r'[_*[\]()~>#\+\-=|{}.!]', lambda x: '\\' + x.group(), text_chunk)
-
-            print(text_chunk)
-            await message.reply(text_chunk, parse_mode='MarkdownV2')
+            await message.answer(text_chunk)
     else:
-        # await message.answer(text)
         text = re.sub(r'[_*[\]()~>#\+\-=|{}.!]', lambda x: '\\' + x.group(), text)
-
-        print(text)
-        await message.reply(text, parse_mode='MarkdownV2')
+        await message.answer(text)
 
     # text_file = BufferedInputFile(bytes(text, 'utf-8'), filename="file.txt")
     # await message.answer_document(text_file)
@@ -226,7 +220,7 @@ async def handle_document(message: Message) -> Any:
 dp = Dispatcher()
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
-bot = Bot(TOKEN, parse_mode=ParseMode.HTML)
+bot = Bot(TOKEN, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def main() -> None:
