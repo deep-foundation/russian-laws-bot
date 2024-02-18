@@ -1,4 +1,4 @@
-import click
+# import click
 from sentence_transformers import SentenceTransformer
 from elasticsearch import Elasticsearch
 import json
@@ -141,56 +141,56 @@ def create_index(name):
     }
     es.indices.create(index=name, body=body)
 
-@click.group()
-def cli():
-    pass
+# @click.group()
+# def cli():
+#     pass
 
-@click.command()
-def create():
-    create_index('text_index')
-    click.echo(f"Index {index} is created with settings {json.dumps(body, indent=4)}")
+# @click.command()
+# def create():
+#     create_index('text_index')
+#     click.echo(f"Index {index} is created with settings {json.dumps(body, indent=4)}")
 
-@click.command()
-@click.option('--string', 'string', prompt=True)
-def index(string):
-    """Index a string in Elasticsearch."""
-    index_string('text_index', string)
+# @click.command()
+# @click.option('--string', 'string', prompt=True)
+# def index(string):
+#     """Index a string in Elasticsearch."""
+#     index_string('text_index', string)
 
-@click.command(name='index_documents')
-@click.option('--path', 'path', prompt=True)
-def index_documents(path):
-    start_time = time.time()
+# @click.command(name='index_documents')
+# @click.option('--path', 'path', prompt=True)
+# def index_documents(path):
+#     start_time = time.time()
 
-    with open(path, 'r', encoding='utf-8') as file:
-        documents = json.load(file)
+#     with open(path, 'r', encoding='utf-8') as file:
+#         documents = json.load(file)
     
-    for i, document in enumerate(documents):
-        prepare_document_strings(document, i)
+#     for i, document in enumerate(documents):
+#         prepare_document_strings(document, i)
     
-    index_prepared_strings('text_index')
+#     index_prepared_strings('text_index')
 
-    document_embedding_time = time.time() - start_time
-    print(f"Documents indexed in {document_embedding_time} seconds.")
+#     document_embedding_time = time.time() - start_time
+#     print(f"Documents indexed in {document_embedding_time} seconds.")
 
-@click.command()
-@click.option('--query', 'query', prompt=True)
-def search(query):
-    """Find strings semantically similar to the search query in Elasticsearch."""
+# @click.command()
+# @click.option('--query', 'query', prompt=True)
+# def search(query):
+#     """Find strings semantically similar to the search query in Elasticsearch."""
 
-    start_time = time.time()
-    search_string('text_index', query)
-    seatch_time = time.time() - start_time
-    print(f"Searched in {seatch_time} seconds.")
+#     start_time = time.time()
+#     search_string('text_index', query)
+#     seatch_time = time.time() - start_time
+#     print(f"Searched in {seatch_time} seconds.")
 
 
-cli.add_command(create)
-cli.add_command(index)
-cli.add_command(index_documents)
-cli.add_command(search)
+# cli.add_command(create)
+# cli.add_command(index)
+# cli.add_command(index_documents)
+# cli.add_command(search)
 
 # preload documents for search
 with open("articles-filtered-and-truncated.json", 'r', encoding='utf-8') as file:
     documents = json.load(file)
 
-if __name__ == "__main__":
-    cli()
+# if __name__ == "__main__":
+#     cli()

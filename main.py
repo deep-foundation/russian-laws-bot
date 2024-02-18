@@ -18,6 +18,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters import Filter
 from aiogram.types import Message
 from dotenv import load_dotenv
+from combined_search import create_index
+from elasticsearch.exceptions import RequestError
 
 MAX_TOKENS = 128 * 1024
 MAX_PROMPT_TOKENS = MAX_TOKENS * 0.8
@@ -249,6 +251,16 @@ if not TOKEN:
     raise ValueError('No TELEGRAM_TOKEN is provided in .env file.')
 if not openai.api_key:
     raise ValueError('No OPENAI_API_KEY is provided in .env file.')
+
+try:
+    create_index('text_index')
+except RequestError as e:
+    # print(dir(e))
+    # print(e.info)
+    # print(json.dumps(e.info, indent=4))
+    if 'resource_already_exists_exception' != e.info.get('error').get('type'):
+        logging.error(e)
+        raise e
 
 bot = Bot(TOKEN, parse_mode=ParseMode.MARKDOWN_V2)
 
