@@ -31,26 +31,26 @@ def split_string(string):
 
     return sentences
 
-def index_strings(strings):
+def index_strings(index_name, strings):
     text_embeddings = model.encode(strings)
 
     for i, string in enumerate(strings):
         # print(string)
         text_embedding = text_embeddings[i]
         body = {'text': string, 'text_vector': text_embedding}
-        res = es.index(index='text_index', body=body)
+        res = es.index(index=index_name, body=body)
         print(f"Indexed '{string}' with id '{res['_id']}'.")
 
-def index_string(string):
+def index_string(index_name, string):
     sentences = split_string(string)
-    index_strings(sentences)
+    index_strings(index_name, sentences)
 
 documents = []
 sentence_documents = {}
 
 def index_prepared_string(string):
     sentences = split_string(string)
-    index_strings(sentences)
+    index_strings(index_name, sentences)
 
 def prepare_document_strings(string, document_id):
     sentences = split_string(string)
@@ -63,7 +63,7 @@ def prepare_document_strings(string, document_id):
         else:
             sentence_documents[sentence] = [document_id]
 
-def index_prepared_strings():
+def index_prepared_strings(index_name):
     strings = []
     items = list(enumerate(sentence_documents.items()))
     for i, (string, document_ids) in items:
@@ -72,10 +72,10 @@ def index_prepared_strings():
     for i, (string, document_ids) in items:
         text_embedding = text_embeddings[i]
         body = {'text': string, 'text_vector': text_embedding, 'document_ids': sentence_documents[string]}
-        res = es.index(index='text_index', body=body)
+        res = es.index(index=index_name, body=body)
         print(f"Indexed '{string}' with id '{res['_id']}'.")
 
-def search_string(query):
+def search_string(index_name, query):
     query_embedding = model.encode([query.lower()])[0]
 
     body = {
@@ -120,7 +120,7 @@ def search_string(query):
     }
 
     try:
-        res = es.search(index='text_index', body=body)
+        res = es.search(index=index_name, body=body)
         click.echo("Search results:")
         for doc in res['hits']['hits']:
             document_ids = doc['_source']['document_ids']
@@ -134,26 +134,27 @@ def search_string(query):
         print(type(inst))
         print(json.dumps(inst.args, indent=4))
 
+def create_index(name):
+    body = {
+        "settings": {},
+        "mappings": { "properties": { "text_vector": { "type": "dense_vector", "dims": 384 } } }
+    }
+    es.indices.create(index=name, body=body)
+
 @click.group()
 def cli():
     pass
 
 @click.command()
 def create():
-    index = 'text_index'
-    body = {
-        "settings": {},
-        "mappings": { "properties": { "text_vector": { "type": "dense_vector", "dims": 384 } } }
-    }
-    es.indices.create(index=index, body=body)
-
+    create_index('text_index')
     click.echo(f"Index {index} is created with settings {json.dumps(body, indent=4)}")
 
 @click.command()
 @click.option('--string', 'string', prompt=True)
 def index(string):
     """Index a string in Elasticsearch."""
-    index_string(string)
+    index_string('text_index', string)
 
 @click.command(name='index_documents')
 @click.option('--path', 'path', prompt=True)
@@ -166,7 +167,7 @@ def index_documents(path):
     for i, document in enumerate(documents):
         prepare_document_strings(document, i)
     
-    index_prepared_strings()
+    index_prepared_strings('text_index')
 
     document_embedding_time = time.time() - start_time
     print(f"Documents indexed in {document_embedding_time} seconds.")
@@ -177,7 +178,7 @@ def search(query):
     """Find strings semantically similar to the search query in Elasticsearch."""
 
     start_time = time.time()
-    search_string(query)
+    search_string('text_index', query)
     seatch_time = time.time() - start_time
     print(f"Searched in {seatch_time} seconds.")
 
