@@ -245,8 +245,13 @@ async def handle_document(message: Message) -> Any:
 dp = Dispatcher()
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
-bot = Bot(TOKEN, parse_mode=ParseMode.MARKDOWN_V2)
 
+if not TOKEN:
+    raise ValueError('No TELEGRAM_TOKEN is provided in .env file.')
+if not openai.api_key:
+    raise ValueError('No OPENAI_API_KEY is provided in .env file.')
+
+bot = Bot(TOKEN, parse_mode=ParseMode.MARKDOWN_V2)
 
 async def main() -> None:
     dp.include_router(router)
