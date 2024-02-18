@@ -9,6 +9,7 @@ import aiofiles
 import aiohttp
 import openai
 import tempfile
+import time
 from typing import Any
 from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ParseMode
@@ -18,7 +19,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters import Filter
 from aiogram.types import Message
 from dotenv import load_dotenv
-from combined_search import create_index
+from combined_search import create_index, search_string, documents, newline, prepare_all_document_strings, index_prepared_strings
 from elasticsearch.exceptions import RequestError
 
 MAX_TOKENS = 128 * 1024
@@ -157,30 +158,50 @@ async def handle_text(message: Message) -> Any:
     user_id = message.from_user.id
     user_context = get_user_context(user_id)
     try:
-        prompt = ""
+        logger.info(f"---------\nReceived message: {message}")
 
+        prompt = ""
+        if message.reply_to_message and message.reply_to_message.text:
+            prompt += message.reply_to_message.text + "\n---\n"
         if message.text:
-            prompt += "\n" + "\n---\n" + message.text
+            prompt += message.text + "\n"
         if contains_url(message.text):
             url = find_url(message.text)
             html_content = await fetch(url)
-            prompt += "\n" + url + ":\n" + html_content
-
-        logger.info(f"---------\nReceived message: {message}")
-        if message.reply_to_message and message.reply_to_message.text:
-            prompt += "\n" + message.reply_to_message.text
+            prompt += url + ":\n" + html_content + "\n"
         document_file = message.reply_to_message.document if message.reply_to_message and message.reply_to_message.document else None
         if document_file:
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                 await bot.download(document_file, temp_file.name)
             async with aiofiles.open(temp_file.name, 'r', encoding='utf-8') as file:
                 file_contents = await file.read()
-                prompt += "\n" + file_contents
+                prompt += file_contents + "\n"
 
         tokens_count = len(encoding.encode(prompt))
 
         if tokens_count > MAX_PROMPT_TOKENS:
             raise ValueError(f'{tokens_count} tokens in promt exceeds MAX_PROMPT_TOKENS ({MAX_PROMPT_TOKENS})')
+
+        logger.info(f"Search query: '{prompt}'")
+        res = search_string('text_index', prompt)
+        logger.info("Search results:")
+        articles = []
+        for doc in res['hits']['hits']:
+            document_ids = doc['_source']['document_ids']
+            
+            for document_id in document_ids:
+                article_text = documents[document_id]
+                # article = article_text.strip().partition(newline)[0]
+                articles.append(article_text)
+            # logger.info(f"'{doc['_id']}' {doc['_score']}: \n{doc['_source']['text']}\n{articles}")
+
+        articles = list(dict.fromkeys(articles)) 
+
+        articles_string = '\n\n'.join(articles)
+
+        prompt += "\n# Актуальные статьи УК РФ (найдены при помощи векторно поиска, могут содержать лишние статьи):\n" + articles_string
+        
+        logger.info(f"{articles_string}")
 
         if not prompt == "":
             user_context.make_and_add_message('user', prompt)
@@ -252,8 +273,19 @@ if not TOKEN:
 if not openai.api_key:
     raise ValueError('No OPENAI_API_KEY is provided in .env file.')
 
+
+# init elastic search index
 try:
-    create_index('text_index')
+    start_time = time.time()
+
+    # create index
+    create_index('text_index') # will fail if index exists and it will prevent second time indexing
+    # index documents
+    prepare_all_document_strings()
+    index_prepared_strings('text_index')
+
+    document_embedding_time = time.time() - start_time
+    print(f"Elastic search index created and loaded with data in {document_embedding_time} seconds.")
 except RequestError as e:
     # print(dir(e))
     # print(e.info)
@@ -267,7 +299,6 @@ bot = Bot(TOKEN, parse_mode=ParseMode.MARKDOWN_V2)
 async def main() -> None:
     dp.include_router(router)
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)

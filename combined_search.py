@@ -2,7 +2,7 @@
 from sentence_transformers import SentenceTransformer
 from elasticsearch import Elasticsearch
 import json
-import time
+# import time
 import re
 
 es = Elasticsearch(['localhost:9200'])
@@ -48,6 +48,10 @@ def index_string(index_name, string):
 documents = []
 sentence_documents = {}
 
+# preload documents for search
+with open("articles-filtered-and-truncated.json", 'r', encoding='utf-8') as file:
+    documents = json.load(file)
+
 def index_prepared_string(string):
     sentences = split_string(string)
     index_strings(index_name, sentences)
@@ -63,6 +67,10 @@ def prepare_document_strings(string, document_id):
         else:
             sentence_documents[sentence] = [document_id]
 
+def prepare_all_document_strings():
+    for i, document in enumerate(documents):
+        prepare_document_strings(document, i)
+
 def index_prepared_strings(index_name):
     strings = []
     items = list(enumerate(sentence_documents.items()))
@@ -76,7 +84,7 @@ def index_prepared_strings(index_name):
         print(f"Indexed '{string}' with id '{res['_id']}'.")
 
 def search_string(index_name, query):
-    query_embedding = model.encode([query.lower()])[0]
+    query_embedding = model.encode([query.strip().lower()])[0]
 
     body = {
         'query': {
@@ -118,21 +126,71 @@ def search_string(index_name, query):
             }
         }
     }
-
     try:
         res = es.search(index=index_name, body=body)
-        click.echo("Search results:")
-        for doc in res['hits']['hits']:
-            document_ids = doc['_source']['document_ids']
-            articles = []
-            for document_id in document_ids:
-                article_text = documents[document_id]
-                article = article_text.strip().partition(newline)[0]
-                articles.append(article)
-            click.echo(f"'{doc['_id']}' {doc['_score']}: \n{doc['_source']['text']}\n{articles}")
-    except Exception as inst:
-        print(type(inst))
-        print(json.dumps(inst.args, indent=4))
+        return res
+    except Exception as e:
+        print(type(e))
+        print(json.dumps(e.args, indent=4))
+
+# def search_string(index_name, query):
+#     query_embedding = model.encode([query.lower()])[0]
+
+#     body = {
+#         'query': {
+#             'script_score': {
+#                 "query": {
+#                     "bool": {
+#                         "must": {
+#                             "match_all": { 'boost': 0 }
+#                         },
+#                         "should": [
+#                             { 
+#                                 "match": { 
+#                                     "text": query
+#                                 }
+#                             },
+#                             {
+#                                 "match": {
+#                                     "content": {
+#                                         "query": query,
+#                                         "operator": "and"
+#                                     }
+#                                 }
+#                             },
+#                             {
+#                                 "match_phrase": {
+#                                     "content": {
+#                                         "query": query
+#                                     }
+#                                 }
+#                             }
+#                         ],
+#                     }
+#                 },
+#                 'script': {
+#                     # "source": "doc['text_vector'].size() == 0 ? 0 : cosineSimilarity(params.query_embedding, 'text_vector') + 1.0"
+#                     'source': "_score * 0.05 + cosineSimilarity(params.query_embedding, 'text_vector') + 1.0",
+#                     'params': {'query_embedding': query_embedding}
+#                 }
+#             }
+#         }
+#     }
+
+#     try:
+#         res = es.search(index=index_name, body=body)
+#         click.echo("Search results:")
+#         for doc in res['hits']['hits']:
+#             document_ids = doc['_source']['document_ids']
+#             articles = []
+#             for document_id in document_ids:
+#                 article_text = documents[document_id]
+#                 article = article_text.strip().partition(newline)[0]
+#                 articles.append(article)
+#             click.echo(f"'{doc['_id']}' {doc['_score']}: \n{doc['_source']['text']}\n{articles}")
+#     except Exception as e:
+#         print(type(e))
+#         print(json.dumps(e.args, indent=4))
 
 def create_index(name):
     body = {
@@ -188,9 +246,7 @@ def create_index(name):
 # cli.add_command(index_documents)
 # cli.add_command(search)
 
-# preload documents for search
-with open("articles-filtered-and-truncated.json", 'r', encoding='utf-8') as file:
-    documents = json.load(file)
+
 
 # if __name__ == "__main__":
 #     cli()
