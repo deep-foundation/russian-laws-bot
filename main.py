@@ -19,6 +19,9 @@ from aiogram.filters import Filter
 from aiogram.types import Message
 from dotenv import load_dotenv
 
+MAX_TOKENS = 128 * 1024
+MAX_PROMPT_TOKENS = MAX_TOKENS * 0.8
+
 class Text(Filter):
     async def __call__(self, message: Message) -> bool:
         return message.text is not None
@@ -87,11 +90,7 @@ class MyCallback(CallbackData, prefix="my"):
 
 class UserContext:
     def __init__(self):
-        self.data = ""
         self.messages = []
-
-    def update_data(self, value):
-        self.data += "\n" + value
 
     def make_and_add_message(self, role, message):
         self.messages.append({ "role": role, "content": message })
@@ -99,12 +98,8 @@ class UserContext:
     def add_message(self, message):
         self.messages.append(message)
 
-    def clear_data(self):
-        self.data = "" # TODO: remove
+    def clear(self):
         self.messages = []
-
-    def get_data(self):
-        return self.data
     
     def get_messages(self):
         return self.messages
@@ -124,22 +119,15 @@ def get_user_context(user_id):
 #     data = callback_query.data
 #     cb1 = MyCallback.unpack(data)
 #     user_context = get_user_context(cb1.id)
-#     user_data = user_context.get_data()
 #     if cb1.action == "Send":
-#         if user_data == "":
-#             await callback_query.message.answer("Context is empty")
-#         else:
-#             answer = await get_openai_completion([{"role": 'user', "content": user_data}])
-#             user_context.add_message(answer)
-#             await send_message(callback_query.message, answer['content'])
+#         answer = await get_openai_completion(user_context.get_messages())
+#         user_context.add_message(answer)
+#         await send_message(callback_query.message, answer['content'])
 #     elif cb1.action == "Clear":
-#         user_context.clear_data()
+#         user_context.clear()
 #         await callback_query.message.answer("Context cleared")
 #     elif cb1.action == "See":
-#         if user_data == "":
-#             await callback_query.message.answer("Context is empty")
-#         else:
-#             await callback_query.message.answer(user_data)
+#         await callback_query.message.answer(user_context.get_messages())
 #     await callback_query.answer()
 
 
@@ -167,28 +155,33 @@ async def handle_text(message: Message) -> Any:
     user_id = message.from_user.id
     user_context = get_user_context(user_id)
     try:
+        prompt = ""
+
         if message.text:
-            user_context.update_data("\n---\n" + message.text)
+            prompt += "\n" + "\n---\n" + message.text
         if contains_url(message.text):
             url = find_url(message.text)
             html_content = await fetch(url)
-            user_context.update_data(url + ":\n" + html_content)
+            prompt += "\n" + url + ":\n" + html_content
 
         logger.info(f"---------\nReceived message: {message}")
         if message.reply_to_message and message.reply_to_message.text:
-            user_context.update_data(message.reply_to_message.text)
+            prompt += "\n" + message.reply_to_message.text
         document_file = message.reply_to_message.document if message.reply_to_message and message.reply_to_message.document else None
         if document_file:
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                 await bot.download(document_file, temp_file.name)
             async with aiofiles.open(temp_file.name, 'r', encoding='utf-8') as file:
-                user_context.update_data(await file.read())
-        tokens_count = len(encoding.encode(user_context.get_data()))
+                file_contents = await file.read()
+                prompt += "\n" + file_contents
 
+        tokens_count = len(encoding.encode(prompt))
 
-        user_data = user_context.get_data()
-        if not user_data == "":
-            user_context.make_and_add_message('user', user_data)
+        if tokens_count > MAX_PROMPT_TOKENS:
+            raise ValueError(f'{tokens_count} tokens in promt exceeds MAX_PROMPT_TOKENS ({MAX_PROMPT_TOKENS})')
+
+        if not prompt == "":
+            user_context.make_and_add_message('user', prompt)
             answer = await get_openai_completion(user_context.get_messages())
             user_context.add_message(answer)
             await send_message(message, answer['content'])
@@ -209,18 +202,24 @@ async def handle_document(message: Message) -> Any:
         user_id = message.from_user.id
         user_context = get_user_context(user_id)
         user_document = message.document if message.document else None
+
+        prompt = ""
+
         if message.caption:
-            user_context.update_data(message.caption)
+            prompt += "\n" + message.caption
         if user_document:
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                 await bot.download(user_document, temp_file.name)
             async with aiofiles.open(temp_file.name, 'r', encoding='utf-8') as file:
-                user_context.update_data(await file.read())
-        tokens_count = len(encoding.encode(user_context.get_data()))
+                prompt += "\n" + await file.read()
 
-        user_data = user_context.get_data()
-        if not user_data == "":
-            user_context.make_and_add_message('user', user_data)
+        tokens_count = len(encoding.encode(prompt))
+
+        if tokens_count > MAX_PROMPT_TOKENS:
+            raise ValueError(f'{tokens_count} tokens in promt exceeds MAX_PROMPT_TOKENS ({MAX_PROMPT_TOKENS})')
+
+        if not prompt == "":
+            user_context.make_and_add_message('user', prompt)
             answer = await get_openai_completion(user_context.get_messages())
             user_context.add_message(answer)
             await send_message(message, answer['content'])
