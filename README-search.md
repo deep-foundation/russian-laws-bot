@@ -9,38 +9,7 @@ A script in Python that loads strings to Elasticsearch Docker container and then
 ## Install and start the Elasticsearch Docker container
 
 ```bash
-docker run -d -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.13.4
-```
-
-## Install dependencies
-
-```bash
-pip install click 'elasticsearch<7.14.0'
-pip install -U sentence-transformers
-```
-
-## Create index
-
-```bash
-python combined_search.py create
-```
-
-## Index specific string
-
-```bash
-python combined_search.py index --string "dog"
-```
-
-## Index documents array from json
-
-```bash
-python combined_search.py index_documents --path "articles-filtered-and-truncated.json"
-```
-
-## Search specific string
-
-```bash
-python combined_search.py search --query "dog"
+docker run -d -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" elasticsearch:7.13.4
 ```
 
 ## Clear elastic search index
