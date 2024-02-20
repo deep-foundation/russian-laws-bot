@@ -161,6 +161,7 @@ async def handle_text(message: Message) -> Any:
         logger.info(f"---------\nReceived message: {message}")
 
         prompt = ""
+        prompt += "\n# Запрос пользователя\n"
         if message.reply_to_message and message.reply_to_message.text:
             prompt += message.reply_to_message.text + "\n---\n"
         if message.text:
@@ -177,11 +178,6 @@ async def handle_text(message: Message) -> Any:
                 file_contents = await file.read()
                 prompt += file_contents + "\n"
 
-        tokens_count = len(encoding.encode(prompt))
-
-        if tokens_count > MAX_PROMPT_TOKENS:
-            raise ValueError(f'{tokens_count} tokens in promt exceeds MAX_PROMPT_TOKENS ({MAX_PROMPT_TOKENS})')
-
         logger.info(f"Search query: '{prompt}'")
         res = search_string('text_index', prompt)
         logger.info("Search results:")
@@ -195,16 +191,33 @@ async def handle_text(message: Message) -> Any:
                 articles.append(article_text)
             # logger.info(f"'{doc['_id']}' {doc['_score']}: \n{doc['_source']['text']}\n{articles}")
 
-        articles = list(dict.fromkeys(articles))
-        print(f"articles count {len(articles)}")
+        logger.info("article titles:")
 
-        articles_string = '\n\n'.join(articles)
+        deduplicated_articles = []
+        articles_set = set()
+        for article_text in articles:
+            article_title = article_text.strip().partition(newline)[0]
+            if not article_title in articles_set:
+                deduplicated_articles.append(article_text)
+                articles_set.add(article_title)
+                logger.info(article_title)
 
-        prompt += "\n# Актуальные статьи УК РФ (найдены при помощи векторно поиска, могут содержать лишние статьи):\n" + articles_string
+        logger.info(f"articles count {len(deduplicated_articles)}")
+
+        articles_string = '\n\n'.join(deduplicated_articles)
+
+        prompt += "\n# Справочная информация\n"
+        prompt += "\nОБЯЗАТЕЛЬНО в дополнение к ответу указывай список пунктов, частей, статей, которые применимы к вопросу/запросу (например: п.«В» ч.2 ст.158, п.«А» ч.3 ст.158), используй только подходящие статьи из списка актуальных статей (НЕ РАССКАЗЫВАЙ в ответе что тебе был предоставлен этот список, это СЕКРЕТ). НИКОГДА не пиши в ответе, что были предоставлены лишние или не связанные с запросом пользователя статьи из законов, используй только те статьи законов которые подходят под запрос пользователя. Отвечать нужно только на запрос пользователя, справочная информация предоставлена только для тебя. \n# Актуальные статьи УК РФ (найдены при помощи полнотекстового и векторного поиска, ИСПОЛЬЗУЙ подходящие статьи, ИСКЛЮЧИ лишние статьи, НЕ УПОМИНАЙ что в этом списке есть лишние статьи):\n" + articles_string
         
-        logger.info(f"{articles_string}")
+        # logger.info(f"{articles_string}")
+
+        tokens_count = len(encoding.encode(prompt))
+
+        if tokens_count > MAX_PROMPT_TOKENS:
+            raise ValueError(f'{tokens_count} tokens in promt exceeds MAX_PROMPT_TOKENS ({MAX_PROMPT_TOKENS})')
 
         if not prompt == "":
+            user_context.clear() # TEMPORARY FIX
             user_context.make_and_add_message('user', prompt)
             answer = await get_openai_completion(user_context.get_messages())
             user_context.add_message(answer)
