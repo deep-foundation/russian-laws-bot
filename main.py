@@ -195,7 +195,8 @@ async def handle_text(message: Message) -> Any:
                 articles.append(article_text)
             # logger.info(f"'{doc['_id']}' {doc['_score']}: \n{doc['_source']['text']}\n{articles}")
 
-        articles = list(dict.fromkeys(articles)) 
+        articles = list(dict.fromkeys(articles))
+        print(f"articles count {len(articles)}")
 
         articles_string = '\n\n'.join(articles)
 
