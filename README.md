@@ -20,6 +20,7 @@ docker run -d -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" elastics
 
 ```bash
 curl -X DELETE 'http://localhost:9200/_all'
+curl -X DELETE 'http://localhost:9200/text_index'
 ```
 
 ## telegram-gpt-bot
