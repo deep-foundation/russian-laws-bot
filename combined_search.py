@@ -13,7 +13,7 @@ space = ' '
 dot = '.'
 newline = '\n'
 whitespace_regex = re.compile(r"[ \t]+")
-split_regex = re.compile(r"\r?\n|\:|\;|\,|\.|\?|\!|\(|\)| против | об | за | о | при | без | этого | не | по | таким | под | понимается | на | с | к | в | или | и | для | либо | -[ ]?")
+split_regex = re.compile(r"\r?\n|\:|\;|\,|\.|\?|\!|\(|\)| и | о | с | к | в | на | об | за | от | не | по | или | для | при | без | под | либо | этого | таким | против | понимается | -[ ]?")
 model_string_limit = 128 + 12 # it should work with more symbols than 128 (because of tokenization)
 
 def split_string(string):
