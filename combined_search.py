@@ -13,7 +13,7 @@ space = ' '
 dot = '.'
 newline = '\n'
 whitespace_regex = re.compile(r"[ \t]+")
-split_regex = re.compile(r"\r?\n|\:|\;|\,|\.|\?|\!|\(|\)| против | об | за | о | на | в | или | и | для | либо | -[ ]?")
+split_regex = re.compile(r"\r?\n|\:|\;|\,|\.|\?|\!|\(|\)| против | об | за | о | по | на | в | или | и | для | либо | -[ ]?")
 model_string_limit = 128
 
 def split_string(string):
