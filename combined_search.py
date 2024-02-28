@@ -14,7 +14,7 @@ dot = '.'
 newline = '\n'
 whitespace_regex = re.compile(r"[ \t]+")
 split_regex = re.compile(r"\r?\n|\:|\;|\,|\.|\?|\!|\(|\)| против | об | за | о | при | по | на | к | в | или | и | для | либо | -[ ]?")
-model_string_limit = 128
+model_string_limit = 128 + 12 # it should work with more symbols than 128 (because of tokenization)
 
 def split_string(string):
     string = whitespace_regex.sub(space, string).lower()
