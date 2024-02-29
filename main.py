@@ -46,7 +46,7 @@ encoding = tiktoken.encoding_for_model("gpt-4")
 
 async def keep_typing(chat_id):
     while True:
-        await bot.send_chat_action(chat_id, 'typing'):
+        await bot.send_chat_action(chat_id, 'typing')
         await asyncio.sleep(5)
 
 async def send_message(message, text):
