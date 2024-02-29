@@ -48,13 +48,13 @@ async def keep_typing_while(chat_id, func):
     cancel = { 'cancel': False }
 
     async def keep_typing():
-        while not cancel.cancel:
+        while not cancel['cancel']:
             await bot.send_chat_action(chat_id, 'typing')
             await asyncio.sleep(5)
 
     async def executor():
         await func()
-        cancel.cancel = True
+        cancel['cancel'] = True
 
     await asyncio.gather(
         keep_typing(),
