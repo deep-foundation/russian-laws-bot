@@ -21,6 +21,7 @@ from aiogram.types import Message
 from dotenv import load_dotenv
 from combined_search import create_index, search_string, documents, newline, prepare_all_document_strings, index_prepared_strings
 from elasticsearch.exceptions import RequestError
+from threading import Thread
 
 MAX_TOKENS = 128 * 1024
 MAX_PROMPT_TOKENS = MAX_TOKENS * 0.8
@@ -43,6 +44,10 @@ openai.api_base = "https://deep-ai.openai.azure.com"
 openai.api_version = "2023-03-15-preview"
 encoding = tiktoken.encoding_for_model("gpt-4")
 
+async def keep_typing(chat_id):
+    while True:
+        await bot.send_chat_action(chat_id, 'typing'):
+        await asyncio.sleep(5)
 
 async def send_message(message, text):
     if len(text) > 4096:
@@ -220,8 +225,9 @@ async def handle_text(message: Message) -> Any:
             user_context.clear() # TEMPORARY FIX
             user_context.make_and_add_message('user', prompt)
             answer = {}
-            async with await bot.send_chat_action(message.chat.id, 'typing'):
-                answer = await get_openai_completion(user_context.get_messages())
+            cancel = { 'cancel': False }
+            Thread(target=asyncio.run, args=(keep_typing(message.chat.id),)).start()
+            answer = await get_openai_completion(user_context.get_messages())
             user_context.add_message(answer)
             await send_message(message, answer['content'])
 
