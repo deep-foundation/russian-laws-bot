@@ -226,9 +226,11 @@ async def handle_text(message: Message) -> Any:
             user_context.make_and_add_message('user', prompt)
             answer = {}
             cancel = { 'cancel': False }
-            Thread(target=asyncio.run, args=(keep_typing(message.chat.id),)).start()
 
-            await asyncio.sleep(30)
+            await asyncio.gather(
+                keep_typing(message.chat.id),
+                asyncio.sleep(30),
+            )
 
             # answer = await get_openai_completion(user_context.get_messages())
             # user_context.add_message(answer)
