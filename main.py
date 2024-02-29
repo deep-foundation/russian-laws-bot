@@ -44,10 +44,22 @@ openai.api_base = "https://deep-ai.openai.azure.com"
 openai.api_version = "2023-03-15-preview"
 encoding = tiktoken.encoding_for_model("gpt-4")
 
-async def keep_typing(chat_id):
-    while True:
-        await bot.send_chat_action(chat_id, 'typing')
-        await asyncio.sleep(5)
+async def keep_typing_while(chat_id, func):
+    cancel = { 'cancel': False }
+
+    async def keep_typing():
+        while not cancel.cancel:
+            await bot.send_chat_action(chat_id, 'typing')
+            await asyncio.sleep(5)
+
+    async def executor():
+        await func()
+        cancel.cancel = True
+
+    await asyncio.gather(
+        keep_typing(),
+        executor(),
+    )
 
 async def send_message(message, text):
     if len(text) > 4096:
@@ -227,10 +239,10 @@ async def handle_text(message: Message) -> Any:
             answer = {}
             cancel = { 'cancel': False }
 
-            await asyncio.gather(
-                keep_typing(message.chat.id),
-                asyncio.sleep(30),
-            )
+            def openai_caller():
+                answer = await get_openai_completion(user_context.get_messages())
+
+            await keep_typing_while(message.chat.id, openai_caller)
 
             # answer = await get_openai_completion(user_context.get_messages())
             # user_context.add_message(answer)
