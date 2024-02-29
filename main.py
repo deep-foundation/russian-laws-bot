@@ -220,7 +220,7 @@ async def handle_text(message: Message) -> Any:
             user_context.clear() # TEMPORARY FIX
             user_context.make_and_add_message('user', prompt)
             answer = {}
-            async with bot.send_chat_action(message.chat.id, 'typing'):
+            async with await bot.send_chat_action(message.chat.id, 'typing'):
                 answer = await get_openai_completion(user_context.get_messages())
             user_context.add_message(answer)
             await send_message(message, answer['content'])
