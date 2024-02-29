@@ -219,7 +219,9 @@ async def handle_text(message: Message) -> Any:
         if not prompt == "":
             user_context.clear() # TEMPORARY FIX
             user_context.make_and_add_message('user', prompt)
-            answer = await get_openai_completion(user_context.get_messages())
+            answer = {}
+            async with bot.send_chat_action(message.chat.id, 'typing'):
+                answer = await get_openai_completion(user_context.get_messages())
             user_context.add_message(answer)
             await send_message(message, answer['content'])
 
