@@ -237,7 +237,6 @@ async def handle_text(message: Message) -> Any:
             user_context.clear() # TEMPORARY FIX
             user_context.make_and_add_message('user', prompt)
             answer = {}
-            # cancel = { 'cancel': False }
 
             async def openai_caller():
                 local_answer = await get_openai_completion(user_context.get_messages())
@@ -245,8 +244,6 @@ async def handle_text(message: Message) -> Any:
                 answer['content'] = local_answer['content']
 
             await keep_typing_while(message.chat.id, openai_caller)
-
-            # answer = await get_openai_completion(user_context.get_messages())
 
             user_context.add_message(answer)
             await send_message(message, answer['content'])
