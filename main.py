@@ -239,7 +239,7 @@ async def handle_text(message: Message) -> Any:
             answer = {}
             cancel = { 'cancel': False }
 
-            def openai_caller():
+            async def openai_caller():
                 answer = await get_openai_completion(user_context.get_messages())
 
             await keep_typing_while(message.chat.id, openai_caller)
