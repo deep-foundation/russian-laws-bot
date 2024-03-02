@@ -78,14 +78,9 @@ async def get_openai_completion(messages):
             messages=messages
         )
 
-        # self._messages.append({"role": "assistant", "content": self.pending_stream_reply.result()})
-        # self.pending_stream_reply = None
-
-        # self._messages.append({"role": "user", "content": message})
-
         response = chat_completion["choices"][0]["message"]
 
-        logger.info(f"---------\nCompletion responce:\n{response}")
+        logger.info(f"---------\nCompletion responce:\n{ast.literal_eval(json.dumps(response, indent=4))}")
 
         return response
     except Exception as e:
