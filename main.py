@@ -83,9 +83,11 @@ async def get_openai_completion(messages):
 
         # self._messages.append({"role": "user", "content": message})
 
-        logger.info(f"---------\nCompletion responce:\n{chat_completion["choices"][0]["message"]}")
+        response = chat_completion["choices"][0]["message"]
 
-        return chat_completion["choices"][0]["message"]
+        logger.info(f"---------\nCompletion responce:\n{response}")
+
+        return response
     except Exception as e:
         logger.error(f"OpenAI completion error: {e}")
         raise
