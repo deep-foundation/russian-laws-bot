@@ -84,7 +84,9 @@ def index_prepared_strings(index_name):
         print(f"Indexed '{string}' with id '{res['_id']}'.")
 
 def search_string(index_name, query):
-    query_embedding = model.encode([query.strip().lower()])[0]
+    # query_embedding = model.encode([query.strip().lower()])[0]
+
+    query_embeddings = model.encode(split_string(query))
 
     body = {
         'query': {
@@ -120,8 +122,22 @@ def search_string(index_name, query):
                 },
                 'script': {
                     # "source": "doc['text_vector'].size() == 0 ? 0 : cosineSimilarity(params.query_embedding, 'text_vector') + 1.0"
-                    'source': "_score * 0.05 + cosineSimilarity(params.query_embedding, 'text_vector') + 1.0",
-                    'params': {'query_embedding': query_embedding}
+                    # 'source': "_score * 0.05 + cosineSimilarity(params.query_embedding, 'text_vector') + 1.0",
+
+                    'source': """
+                        float max = 0;
+                        for (int i = 0; i < params.query_embeddings.length; i++) {
+                            float cosine = cosineSimilarity(params.query_embeddings[i], 'text_vector');
+                            if (cosine > max) { 
+                                max = cosine;
+                            }
+                        }
+                        return max;
+                    """,
+
+                    # 'params': {'query_embedding': query_embedding}
+
+                    'params': {'query_embeddings': query_embeddings}
                 }
             }
         }
