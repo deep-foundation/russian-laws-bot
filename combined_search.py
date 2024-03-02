@@ -125,9 +125,9 @@ def search_string(index_name, query):
                     # 'source': "_score * 0.05 + cosineSimilarity(params.query_embedding, 'text_vector') + 1.0",
 
                     'source': """
-                        float max = 0;
+                        double max = 0;
                         for (int i = 0; i < params.query_embeddings.length; i++) {
-                            float cosine = cosineSimilarity(params.query_embeddings[i], 'text_vector');
+                            double cosine = cosineSimilarity(params.query_embeddings[i], 'text_vector');
                             if (cosine > max) { 
                                 max = cosine;
                             }
