@@ -144,7 +144,7 @@ def search_string(index_name, query):
         return res
     except Exception as e:
         print(type(e))
-        print(json.ast.literal_eval(json.ast.literal_eval(json.dumps(e.args, indent=4)))
+        print(json.ast.literal_eval(json.ast.literal_eval(json.dumps(e.args, indent=4))))
 
 # def search_string(index_name, query):
 #     query_embedding = model.encode([query.lower()])[0]
