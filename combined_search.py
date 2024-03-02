@@ -1,9 +1,6 @@
-# import click
+import re, ast, json
 from sentence_transformers import SentenceTransformer
 from elasticsearch import Elasticsearch
-import json
-# import time
-import re
 
 es = Elasticsearch(['localhost:9200'])
 
@@ -147,7 +144,7 @@ def search_string(index_name, query):
         return res
     except Exception as e:
         print(type(e))
-        print(json.dumps(e.args, indent=4))
+        print(json.ast.literal_eval(json.ast.literal_eval(json.dumps(e.args, indent=4)))
 
 # def search_string(index_name, query):
 #     query_embedding = model.encode([query.lower()])[0]
@@ -206,7 +203,7 @@ def search_string(index_name, query):
 #             click.echo(f"'{doc['_id']}' {doc['_score']}: \n{doc['_source']['text']}\n{articles}")
 #     except Exception as e:
 #         print(type(e))
-#         print(json.dumps(e.args, indent=4))
+#         print(json.ast.literal_eval(json.dumps(e.args, indent=4)))
 
 def create_index(name):
     body = {
@@ -222,7 +219,7 @@ def create_index(name):
 # @click.command()
 # def create():
 #     create_index('text_index')
-#     click.echo(f"Index {index} is created with settings {json.dumps(body, indent=4)}")
+#     click.echo(f"Index {index} is created with settings {json.ast.literal_eval(json.dumps(body, indent=4))}")
 
 # @click.command()
 # @click.option('--string', 'string', prompt=True)

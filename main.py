@@ -1,15 +1,5 @@
-import asyncio
-import logging
-import os
-import re
-import sys
-import json
-import tiktoken
-import aiofiles
-import aiohttp
-import openai
-import tempfile
-import time
+
+import os, re, sys, ast, json, time, openai, asyncio, logging, aiohttp, tiktoken, aiofiles, tempfile
 from typing import Any
 from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ParseMode
@@ -22,6 +12,7 @@ from dotenv import load_dotenv
 from combined_search import create_index, search_string, documents, newline, prepare_all_document_strings, index_prepared_strings
 from elasticsearch.exceptions import RequestError
 from threading import Thread
+# jdata = ast.literal_eval(ast.literal_eval(json.dumps(jdata))
 
 MAX_TOKENS = 128 * 1024
 MAX_PROMPT_TOKENS = MAX_TOKENS * 0.8
@@ -79,7 +70,7 @@ async def send_message(message, text):
 
 async def get_openai_completion(messages):
     try:
-        logger.info(f"---------\nCompletion request messages:\n{json.dumps(messages, indent=4)}")
+        logger.info(f"---------\nCompletion request messages:\n{ast.literal_eval(json.dumps(messages, indent=4))}")
 
         chat_completion = await openai.ChatCompletion.acreate(
             deployment_id="gpt-4-128k",
@@ -92,7 +83,7 @@ async def get_openai_completion(messages):
 
         # self._messages.append({"role": "user", "content": message})
 
-        logger.info(f"---------\nCompletion responce:\n{json.dumps(chat_completion, indent=4)}")
+        logger.info(f"---------\nCompletion responce:\n{ast.literal_eval(json.dumps(chat_completion, indent=4))}")
 
         return chat_completion["choices"][0]["message"]
     except Exception as e:
@@ -328,7 +319,7 @@ try:
 except RequestError as e:
     # print(dir(e))
     # print(e.info)
-    # print(json.dumps(e.info, indent=4))
+    # print(ast.literal_eval(json.dumps(e.info, indent=4)))
     if 'resource_already_exists_exception' != e.info.get('error').get('type'):
         logging.error(e)
         raise e
