@@ -83,7 +83,7 @@ async def get_openai_completion(messages):
 
         # self._messages.append({"role": "user", "content": message})
 
-        logger.info(f"---------\nCompletion responce:\n{ast.literal_eval(json.dumps(chat_completion, indent=4))}")
+        # logger.info(f"---------\nCompletion responce:\n{ast.literal_eval(json.dumps(chat_completion, indent=4))}")
 
         return chat_completion["choices"][0]["message"]
     except Exception as e:
