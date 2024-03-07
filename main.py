@@ -1,5 +1,5 @@
 
-import os, re, sys, ast, json, time, openai, asyncio, logging, aiohttp, tiktoken, aiofiles, tempfile
+import os, re, sys, ast, json, time, open_ai, asyncio, logging, aiohttp, tiktoken, aiofiles, tempfile
 from typing import Any
 from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ParseMode
@@ -29,11 +29,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
-openai.api_type = "azure"
-openai.api_key = os.getenv('OPENAI_API_KEY')
-openai.api_base = "https://deep-ai.openai.azure.com"
-openai.api_version = "2023-03-15-preview"
-encoding = tiktoken.encoding_for_model("gpt-4")
+
 
 async def keep_typing_while(chat_id, func):
     cancel = { 'cancel': False }
@@ -68,33 +64,11 @@ async def send_message(message, text):
     # await message.answer_document(text_file)
 
 
-async def get_openai_completion(messages):
-    try:
-        logger.info(f"---------\nCompletion request messages:\n{ast.literal_eval(json.dumps(messages, indent=4))}")
-
-        chat_completion = await openai.ChatCompletion.acreate(
-            deployment_id="gpt-4-128k",
-            model="gpt-4",
-            messages=messages
-        )
-
-        response = chat_completion["choices"][0]["message"]
-
-        logger.info(f"---------\nCompletion responce:\n{ast.literal_eval(json.dumps(response, indent=4))}")
-
-        return response
-    except Exception as e:
-        logger.error(f"OpenAI completion error: {e}")
-        raise
-
-
 router = Router(name=__name__)
-
 
 class MyCallback(CallbackData, prefix="my"):
     action: str
     id: int
-
 
 class UserContext:
     def __init__(self):
@@ -297,8 +271,6 @@ TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 if not TOKEN:
     raise ValueError('No TELEGRAM_TOKEN is provided in .env file.')
-if not openai.api_key:
-    raise ValueError('No OPENAI_API_KEY is provided in .env file.')
 
 
 # init elastic search index
