@@ -86,6 +86,7 @@ def search_string(index_name, query):
     query_embeddings = model.encode(split_string(query))
 
     body = {
+        'size': 50,
         'query': {
             'script_score': {
                 "query": {

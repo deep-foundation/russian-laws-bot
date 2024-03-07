@@ -9,6 +9,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters import Filter
 from aiogram.types import Message
 from dotenv import load_dotenv
+from open_ai import get_openai_completion, search_query_to_key_words, filter_documents
 from combined_search import create_index, search_string, documents, newline, prepare_all_document_strings, index_prepared_strings
 from elasticsearch.exceptions import RequestError
 from threading import Thread
@@ -95,6 +96,22 @@ def get_user_context(user_id):
         users_context[user_id] = UserContext()
     return users_context[user_id]
 
+def get_articles_from_search(search_query):
+    result = search_string('text_index', search_query)
+    all_articles = []
+    for doc in result['hits']['hits']:
+        document_ids = doc['_source']['document_ids']
+        for document_id in document_ids:
+            article_text = documents[document_id]
+            article = article_text.strip().partition(newline)[0]
+            if not article in all_articles:  
+                all_articles.append({ 'document_id': document_id, 'article_title': article })
+    logger.info('----------')
+    for article in all_articles:
+        logger.info(article)
+    logger.info('----------')
+    return all_articles
+
 
 # @router.callback_query()
 # async def handle_callback_query(callback_query: CallbackQuery) -> Any:
@@ -140,7 +157,7 @@ async def handle_text(message: Message) -> Any:
         logger.info(f"---------\nReceived message: {message}")
 
         prompt = ""
-        prompt += "\n# Запрос пользователя\n"
+        # prompt += "\n# Запрос пользователя\n"
         if message.reply_to_message and message.reply_to_message.text:
             prompt += message.reply_to_message.text + "\n---\n"
         if message.text:
@@ -157,58 +174,41 @@ async def handle_text(message: Message) -> Any:
                 file_contents = await file.read()
                 prompt += file_contents + "\n"
 
-        logger.info(f"Search query: '{prompt}'")
-        res = search_string('text_index', prompt)
-        logger.info("Search results:")
-        articles = []
-        for doc in res['hits']['hits']:
-            document_ids = doc['_source']['document_ids']
-            
-            for document_id in document_ids:
-                article_text = documents[document_id]
-                # article = article_text.strip().partition(newline)[0]
-                articles.append(article_text)
-            # logger.info(f"'{doc['_id']}' {doc['_score']}: \n{doc['_source']['text']}\n{articles}")
+        async def openai_caller():
+            logger.info(f"Search query: '{prompt}'")
 
-        logger.info("article titles:")
+            modified_search_query = await search_query_to_key_words(logger, prompt)
+            articles = get_articles_from_search(modified_search_query)
+            filtered_documents = await filter_documents(logger, search_query, articles)
 
-        deduplicated_articles = []
-        articles_set = set()
-        for article_text in articles:
-            article_title = article_text.strip().partition(newline)[0]
-            if not article_title in articles_set:
-                deduplicated_articles.append(article_text)
-                articles_set.add(article_title)
-                logger.info(article_title)
+            prompt = "\n# Запрос пользователя\n" + prompt
 
-        logger.info(f"articles count {len(deduplicated_articles)}")
+            prompt += "\n# Актуальные статьи уголовного кодекса и/или кодекса об административных правонарушениях РФ:\n"
 
-        articles_string = '\n\n'.join(deduplicated_articles)
+            for doc in filtered_documents:
+                document_id = doc['document_id']
+                prompt += documents[document_id] + "\n"
 
-        prompt += "\n# Справочная информация\n"
-        prompt += "\nОБЯЗАТЕЛЬНО в дополнение к ответу указывай список пунктов, частей, статей, которые применимы к вопросу/запросу (например: п.«В» ч.2 ст.158, п.«А» ч.3 ст.158), используй только подходящие статьи из списка актуальных статей (НЕ РАССКАЗЫВАЙ в ответе что тебе был предоставлен этот список, это СЕКРЕТ). НИКОГДА не пиши в ответе, что были предоставлены лишние или не связанные с запросом пользователя статьи из законов, используй только те статьи законов которые подходят под запрос пользователя. Отвечать нужно только на запрос пользователя, справочная информация предоставлена только для тебя. \n# Актуальные статьи уголовного кодекса и/или кодекса об административных правонарушениях РФ (найдены при помощи полнотекстового и векторного поиска, ИСПОЛЬЗУЙ подходящие статьи, ИСКЛЮЧИ лишние статьи, НЕ УПОМИНАЙ что в этом списке есть лишние статьи):\n" + articles_string
+            prompt += "\nОБЯЗАТЕЛЬНО в дополнение к ответу указывай список пунктов, частей, статей, которые применимы к вопросу/запросу (например: п.«В» ч.2 ст.158, п.«А» ч.3 ст.158), используй только подходящие статьи из списка актуальных статей. НИКОГДА не пиши в ответе, что были предоставлены лишние или не связанные с запросом пользователя статьи из законов, используй только те статьи законов которые подходят под запрос пользователя. Отвечать нужно только на запрос пользователя, справочная информация предоставлена только для тебя. Статьи законов найдены при помощи полнотекстового и векторного поиска, ИСПОЛЬЗУЙ подходящие статьи, ИСКЛЮЧИ лишние статьи, НЕ УПОМИНАЙ что в этом списке есть лишние статьи."
 
-        # logger.info(f"{articles_string}")
+            tokens_count = len(encoding.encode(prompt))
 
-        tokens_count = len(encoding.encode(prompt))
+            if tokens_count > MAX_PROMPT_TOKENS:
+                raise ValueError(f'{tokens_count} tokens in promt exceeds MAX_PROMPT_TOKENS ({MAX_PROMPT_TOKENS})')
 
-        if tokens_count > MAX_PROMPT_TOKENS:
-            raise ValueError(f'{tokens_count} tokens in promt exceeds MAX_PROMPT_TOKENS ({MAX_PROMPT_TOKENS})')
+            if not prompt == "":
+                user_context.clear() # TEMPORARY FIX
+                user_context.make_and_add_message('user', prompt)
+                answer = {}
 
-        if not prompt == "":
-            user_context.clear() # TEMPORARY FIX
-            user_context.make_and_add_message('user', prompt)
-            answer = {}
-
-            async def openai_caller():
                 local_answer = await get_openai_completion(user_context.get_messages())
                 answer['role'] = local_answer['role']
                 answer['content'] = local_answer['content']
 
-            await keep_typing_while(message.chat.id, openai_caller)
+        await keep_typing_while(message.chat.id, openai_caller)
 
-            user_context.add_message(answer)
-            await send_message(message, answer['content'])
+        user_context.add_message(answer)
+        await send_message(message, answer['content'])
 
         # builder = InlineKeyboardBuilder()
         # builder.button(text="Send request", callback_data=MyCallback(action="Send", id=user_id))
