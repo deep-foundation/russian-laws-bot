@@ -32,12 +32,12 @@ curl -X DELETE 'http://localhost:9200/text_index'
 
 ### Clone the repository
 ```bash
-git clone https://github.com/deep-foundation/chatpgt-telegram-bot
+git clone https://github.com/deep-foundation/russian-laws-bot
 ```
 
 ### Login to the code folder
 ```bash
-cd .\chatpgt-telegram-bot\python\
+cd russian-laws-bot
 ```
 
 ### Setting environment variables
@@ -70,10 +70,10 @@ python main.py 2>&1 | tee log.txt
 
 ## Building a Docker image
 ```bash
-docker build -t deep-chatgpt-telegram-bot .
+docker build -t russian-laws-bot .
 ```
 
 ## Running a Docker container
 ```bash
-docker run -p 8080:8080 --name container-deep-chatgpt-telegram-bot deep-chatgpt-telegram-bot
+docker run -p 8080:8080 --name container-russian-laws-bot russian-laws-bot
 ```
