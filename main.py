@@ -175,30 +175,31 @@ async def handle_text(message: Message) -> Any:
                 prompt += file_contents + "\n"
 
         async def openai_caller():
-            logger.info(f"Search query: '{prompt}'")
+            local_prompt = prompt
+            logger.info(f"Search query: '{local_prompt}'")
 
-            modified_search_query = await search_query_to_key_words(logger, prompt)
+            modified_search_query = await search_query_to_key_words(logger, local_prompt)
             articles = get_articles_from_search(modified_search_query)
             filtered_documents = await filter_documents(logger, search_query, articles)
 
-            prompt = "\n# Запрос пользователя\n" + prompt
+            local_prompt = "\n# Запрос пользователя\n" + local_prompt
 
-            prompt += "\n# Актуальные статьи уголовного кодекса и/или кодекса об административных правонарушениях РФ:\n"
+            local_prompt += "\n# Актуальные статьи уголовного кодекса и/или кодекса об административных правонарушениях РФ:\n"
 
             for doc in filtered_documents:
                 document_id = doc['document_id']
-                prompt += documents[document_id] + "\n"
+                local_prompt += documents[document_id] + "\n"
 
-            prompt += "\nОБЯЗАТЕЛЬНО в дополнение к ответу указывай список пунктов, частей, статей, которые применимы к вопросу/запросу (например: п.«В» ч.2 ст.158, п.«А» ч.3 ст.158), используй только подходящие статьи из списка актуальных статей. НИКОГДА не пиши в ответе, что были предоставлены лишние или не связанные с запросом пользователя статьи из законов, используй только те статьи законов которые подходят под запрос пользователя. Отвечать нужно только на запрос пользователя, справочная информация предоставлена только для тебя. Статьи законов найдены при помощи полнотекстового и векторного поиска, ИСПОЛЬЗУЙ подходящие статьи, ИСКЛЮЧИ лишние статьи, НЕ УПОМИНАЙ что в этом списке есть лишние статьи."
+            local_prompt += "\nОБЯЗАТЕЛЬНО в дополнение к ответу указывай список пунктов, частей, статей, которые применимы к вопросу/запросу (например: п.«В» ч.2 ст.158, п.«А» ч.3 ст.158), используй только подходящие статьи из списка актуальных статей. НИКОГДА не пиши в ответе, что были предоставлены лишние или не связанные с запросом пользователя статьи из законов, используй только те статьи законов которые подходят под запрос пользователя. Отвечать нужно только на запрос пользователя, справочная информация предоставлена только для тебя. Статьи законов найдены при помощи полнотекстового и векторного поиска, ИСПОЛЬЗУЙ подходящие статьи, ИСКЛЮЧИ лишние статьи, НЕ УПОМИНАЙ что в этом списке есть лишние статьи."
 
-            tokens_count = len(encoding.encode(prompt))
+            tokens_count = len(encoding.encode(local_prompt))
 
             if tokens_count > MAX_PROMPT_TOKENS:
                 raise ValueError(f'{tokens_count} tokens in promt exceeds MAX_PROMPT_TOKENS ({MAX_PROMPT_TOKENS})')
 
-            if not prompt == "":
+            if not local_prompt == "":
                 user_context.clear() # TEMPORARY FIX
-                user_context.make_and_add_message('user', prompt)
+                user_context.make_and_add_message('user', local_prompt)
                 answer = {}
 
                 local_answer = await get_openai_completion(user_context.get_messages())
