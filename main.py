@@ -119,7 +119,7 @@ def get_articles_from_search(search_query):
 #     cb1 = MyCallback.unpack(data)
 #     user_context = get_user_context(cb1.id)
 #     if cb1.action == "Send":
-#         answer = await get_openai_completion(user_context.get_messages())
+#         answer = await get_openai_completion(logger, user_context.get_messages())
 #         user_context.add_message(answer)
 #         await send_message(callback_query.message, answer['content'])
 #     elif cb1.action == "Clear":
@@ -202,7 +202,7 @@ async def handle_text(message: Message) -> Any:
                 user_context.make_and_add_message('user', local_prompt)
                 answer = {}
 
-                local_answer = await get_openai_completion(user_context.get_messages())
+                local_answer = await get_openai_completion(logger, user_context.get_messages())
                 answer['role'] = local_answer['role']
                 answer['content'] = local_answer['content']
 
@@ -245,7 +245,7 @@ async def handle_document(message: Message) -> Any:
 
         if not prompt == "":
             user_context.make_and_add_message('user', prompt)
-            answer = await get_openai_completion(user_context.get_messages())
+            answer = await get_openai_completion(logger, user_context.get_messages())
             user_context.add_message(answer)
             await send_message(message, answer['content'])
 
