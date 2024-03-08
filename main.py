@@ -180,7 +180,7 @@ async def handle_text(message: Message) -> Any:
 
             modified_search_query = await search_query_to_key_words(logger, local_prompt)
             articles = get_articles_from_search(modified_search_query)
-            filtered_documents = await filter_documents(logger, search_query, articles)
+            filtered_documents = await filter_documents(logger, local_prompt, articles)
 
             local_prompt = "\n# Запрос пользователя\n" + local_prompt
 
