@@ -9,7 +9,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters import Filter
 from aiogram.types import Message
 from dotenv import load_dotenv
-from open_ai import get_openai_completion, search_query_to_key_words, filter_documents
+from open_ai import get_openai_completion, search_query_to_key_words, filter_documents, encoding
 from combined_search import create_index, search_string, documents, newline, prepare_all_document_strings, index_prepared_strings
 from elasticsearch.exceptions import RequestError
 from threading import Thread
