@@ -174,6 +174,8 @@ async def handle_text(message: Message) -> Any:
                 file_contents = await file.read()
                 prompt += file_contents + "\n"
 
+        answer = {}
+
         async def openai_caller():
             local_prompt = prompt
             logger.info(f"Search query: '{local_prompt}'")
@@ -200,8 +202,7 @@ async def handle_text(message: Message) -> Any:
             if not local_prompt == "":
                 user_context.clear() # TEMPORARY FIX
                 user_context.make_and_add_message('user', local_prompt)
-                answer = {}
-
+            
                 local_answer = await get_openai_completion(logger, user_context.get_messages())
                 answer['role'] = local_answer['role']
                 answer['content'] = local_answer['content']
