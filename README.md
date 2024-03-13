@@ -16,6 +16,11 @@ A script in Python that loads strings to Elasticsearch Docker container and then
 docker run -d -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" elasticsearch:7.13.4
 ```
 
+### Start Elasticsearch if it was stopped
+```bash
+docker start $(docker ps -a -q --filter "ancestor=elasticsearch:7.13.4")
+```
+
 ### Clear elastic search index
 
 ```bash
