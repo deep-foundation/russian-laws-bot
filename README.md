@@ -68,6 +68,11 @@ With logs:
 python main.py 2>&1 | tee log.txt
 ```
 
+And if `python` is not available, but `python3` is.
+```bash
+python3 main.py 2>&1 | tee log.txt
+```
+
 ## Building a Docker image
 ```bash
 docker build -t russian-laws-bot .
