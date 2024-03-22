@@ -13,7 +13,7 @@ A script in Python that loads strings to Elasticsearch Docker container and then
 ### Install and start the Elasticsearch Docker container
 
 ```bash
-docker run -d -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" elasticsearch:7.13.4
+docker run -d -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" elasticsearch:7.13.4 --restart=always
 ```
 
 ### Start Elasticsearch if it was stopped
